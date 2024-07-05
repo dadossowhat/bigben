@@ -1,0 +1,1 @@
+delete from `clientes-sowhat.bigben.midia_all_data` where post_date >= date_sub(current_date(), interval 8 day);
