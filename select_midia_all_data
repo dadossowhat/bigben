@@ -1,0 +1,1 @@
+select distinct post_date from `clientes-sowhat.bigben.midia_all_data` where post_date >= date_sub(current_date(), interval 15 day) order by post_date;
