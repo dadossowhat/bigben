@@ -1,0 +1,188 @@
+/**
+ * @OnlyCurrentDoc
+ * @NotMethod
+ * @oauthScopes https://www.googleapis.com/auth/spreadsheets
+ * @oauthScopes https://www.googleapis.com/auth/drive
+ * @oauthScopes https://www.googleapis.com/auth/bigquery
+ * @oauthScopes https://www.googleapis.com/auth/script.external_request
+ */
+function importDataFromDriveToBigQueryBigBen() {
+  var startTime = new Date();
+  Logger.log('Início da execução do script: ' + startTime);
+
+  var folderId = '1Ik1OBfGiIsLSphDdZdRmJt-3R5Dvv0ry'; // ID da pasta no Google Drive
+  var files = DriveApp.getFolderById(folderId).getFiles();
+  var projectId = '1009326826802'; // ID do seu projeto no BigQuery
+  var datasetId = 'bigben'; // ID do seu dataset no BigQuery
+  var tableId = 'crm'; // ID da sua tabela no BigQuery
+
+  while (files.hasNext()) {
+    var file = files.next();
+    Logger.log('Processando arquivo: ' + file.getName() + ' às ' + new Date());
+    
+    if (file.getMimeType() === MimeType.GOOGLE_SHEETS) {
+      var sheet = SpreadsheetApp.openById(file.getId()).getSheets()[0]; // Pega a primeira aba do arquivo
+      var data = sheet.getDataRange().getValues();
+      Logger.log('Dados carregados do arquivo: ' + file.getName() + ' às ' + new Date());
+
+      // Remover colunas indesejadas
+      var columnsToRemove = [4, 5, 6, 7, 8, 11, 12, 14, 15, 16, 17, 18]; // índices baseados em zero
+      data = data.map(function(row) {
+        return row.filter(function(cell, index) {
+          return columnsToRemove.indexOf(index) === -1;
+        });
+      });
+
+      // Transformar a coluna 3
+      data = data.map(function(row, rowIndex) {
+        if (rowIndex > 0) { // Pular o cabeçalho
+          var dateTime = row[3]; // índice baseado em zero para a terceira coluna
+          if (dateTime && typeof dateTime === 'string') {
+            Logger.log('Processando data e hora: ' + dateTime);
+            var datePart = dateTime.split(' ')[0];
+            row[3] = datePart;
+          } else {
+            Logger.log('Formato inesperado de data e hora na linha ' + (rowIndex + 1) + ': ' + dateTime);
+          }
+        }
+        return row;
+      });
+
+      var headers = data[0]; // Assumindo que a primeira linha é o cabeçalho
+      data.shift(); // Remover a linha de cabeçalho dos dados
+
+      // Corrigir os nomes dos campos que causam erro
+      var fieldMapping = {
+        "Origin":"origin",
+        "Order":"order",
+        "Sequence":"sequence",
+        "Creation Date":"creation_date",
+        "UF":"uf",
+        "City":"city",
+        "Receiver Name":"receiver_name",
+        "Postal Code":"postal_code",
+        "SLA Type":"sla_type",
+        "Courrier":"courrier",
+        "Estimate Delivery Date":"estimate_delivery_date",
+        "Delivery Deadline":"delivery_deadline",
+        "Status":"status",
+        "Last Change Date":"last_change_date",
+        "UtmMedium":"utmmedium",
+        "UtmSource":"utmsource",
+        "UtmCampaign":"utmcampaign",
+        "Coupon":"coupon",
+        "Payment System Name":"payment_system_name",
+        "Installments":"installments",
+        "Payment Value":"payment value",
+        "Quantity_SKU":"quantity_sku",
+        "ID_SKU":"id_sku",
+        "Category Ids Sku":"category_ids_sku",
+        "Reference Code":"reference_code",
+        "SKU Name":"sku_name",
+        "SKU Value":"sku_value",
+        "SKU Selling Price":"sku_selling price",
+        "SKU Total Price":"sku_total price",
+        "SKU Path":"sku_path",
+        "Item Attachments":"item_attachments",
+        "List Id":"list_id",
+        "List Type Name":"list_type_name",
+        "Service (Price/ Selling Price)":"service",
+        "Shipping List Price":"shipping_list_price",
+        "Shipping Value":"shipping_value",
+        "Total Value":"total_value",
+        "Discounts Totals":"discounts_totals",
+        "Discounts Names":"discounts_names",
+        "Call Center Email":"call_center_email",
+        "Call Center Code":"call_center_code",
+        "Tracking Number":"tracking_number",
+        "Host":"host",
+        "GiftRegistry ID":"giftregistry_id",
+        "Seller Name":"seller_name",
+        "Status TimeLine":"status_timeline",
+        "Obs":"obs",
+        "UtmiPart":"utmipart",
+        "UtmiCampaign":"utmicampaign",
+        "UtmiPage":"utmipage",
+        "Seller Order Id":"seller_order_id",
+        "Acquirer":"acquirer",
+        "Authorization Id":"authorization_id",
+        "TID":"tid",
+        "NSU":"nsu",
+        "Card First Digits":"card_first_digits",
+        "Card Last Digits":"card_last_digits",
+        "Payment Approved By":"payment_approved_by",
+        "Cancelled By":"cancelled_by",
+        "Cancellation Reason":"cancellation_reason",
+        "Gift Card Name":"gift_card_name",
+        "Gift Card Caption":"gift_card_caption",
+        "Authorized Date":"authorized_date",
+        "Corporate Name":"corporate_name",
+        "Corporate Document":"corporate_document",
+        "TransactionId":"transactionid",
+        "PaymentId":"paymentid",
+        "PaymentOrigin":"paymentorigin",
+        "SalesChannel":"saleschannel",
+        "marketingTags":"marketingtags",
+        "Delivered":"delivered",
+        "SKU RewardValue":"sku_rewardvalue",
+        "Is Marketplace cetified":"is_marketplace_cetified",
+        "Is Checked In":"is_checked_in",
+        "Currency Code":"currency_code",
+        "Taxes":"taxes",
+        "Invoice Numbers":"invoice_numbers",
+        "Country":"country",
+        "Input Invoices Numbers":"input_invoices_numbers",
+        "Output Invoices Numbers":"output _invoices _numbers",
+        "Status raw value (temporary)":"status_raw_value",
+        "Cancellation Data":"cancellation_data"
+      };
+        
+      var mappedHeaders = headers.map(function(header) {
+        return fieldMapping[header] || header;
+      });
+
+      var request = {
+        rows: data.map(function(row) {
+          return {
+            json: row.reduce(function(acc, cell, i) {
+              acc[mappedHeaders[i]] = cell;
+              return acc;
+            }, {})
+          };
+        })
+      };
+
+      Logger.log('Dados preparados para envio ao BigQuery: ' + JSON.stringify(request) + ' às ' + new Date());
+
+      var url = 'https://www.googleapis.com/bigquery/v2/projects/' + projectId + '/datasets/' + datasetId + '/tables/' + tableId + '/insertAll';
+
+      var options = {
+        method: 'POST',
+        contentType: 'application/json',
+        payload: JSON.stringify(request),
+        headers: {
+          Authorization: 'Bearer ' + ScriptApp.getOAuthToken()
+        },
+        muteHttpExceptions: true // Adiciona para ver a resposta completa
+      };
+
+      try {
+        var response = UrlFetchApp.fetch(url, options);
+        Logger.log('Resposta do BigQuery: ' + response.getContentText() + ' às ' + new Date());
+      } catch (e) {
+        Logger.log('Erro ao enviar dados para o BigQuery: ' + e.toString());
+      }
+
+      // Mover o arquivo para a subpasta "Processed" para indicar que já foi processado
+      var processedFolder = DriveApp.getFolderById(folderId).getFoldersByName('Processed').next();
+      file.moveTo(processedFolder);
+      Logger.log('Arquivo movido para a subpasta "Processed": ' + file.getName() + ' às ' + new Date());
+    } else {
+      Logger.log('Arquivo não é uma planilha do Google Sheets: ' + file.getName() + ' às ' + new Date());
+    }
+  }
+
+  var endTime = new Date();
+  Logger.log('Fim da execução do script: ' + endTime);
+  Logger.log('Duração total da execução: ' + (endTime - startTime) + ' ms');
+}
