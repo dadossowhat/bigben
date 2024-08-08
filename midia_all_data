@@ -1,17 +1,17 @@
 with all_data_bigben as (
   select
     m.post_date,
-    upper (m.ad_name) as ad_name,
+    m.ad_name,
     m.cost,
     m.impressions,
     m.link_clicks,
     null as video_views,
     m.video_play_actions,
-    m.website_conversions as conversions, 
+    null as website_conversions, 
     m.video_watches_100 as full_watches,
     m.thruplay_actions,
-    m.subscribe,  
     null as total_users,
+    null as subscribe,  
     null as sessions,
     null as revenue,
     upper(trim(regexp_substr(m.ad_name, '[^_]+', 1, 1))) as agencia,
@@ -42,7 +42,7 @@ with all_data_bigben as (
 
   select
     mb.post_date,
-    upper (mb.campaign_name) as ad_name,
+    mb.campaign_name,
     mb.cost,
     mb.impressions,
     mb.link_clicks,
@@ -50,9 +50,9 @@ with all_data_bigben as (
     mb.video_play_actions,
     mb.website_conversions as conversions,
     mb.video_watches_100 as full_watches,
-    mb.thruplay_Actions,
-    mb.subscribe,  
+    mb.thruplay_actions,
     null as total_users,
+    mb.subscribe,  
     null as sessions,
     null as revenue,
     upper(trim(regexp_substr(mb.campaign_name, '[^_]+', 1, 1))) as agencia,
@@ -77,18 +77,17 @@ with all_data_bigben as (
     `clientes-sowhat.bigben.meta_ads_raw_data_bkp` as mb
 
     union all
-
-
+    
   select 
     g.post_date,
-    upper (g.campaign_name) as ad_name,
+    g.campaign_name,
     g.cost,
     g.impressions,
     g.clicks,
     g.video_views,
     null as video_play_actions,
-    g.conversions,
-    g.watch_100_views as full_watches,
+    null as conversions,
+    null as full_watches,
     null as thruplay_actions,
     null as total_users,
     null as subscribe,
@@ -119,13 +118,13 @@ with all_data_bigben as (
 
   select 
     ga.post_date,
-    upper (ga.session_campaign_name) as ad_name,
+    ga.session_campaign_name,
     null as cost, 
     null as impressions,
     null as clicks,
     null as video_views,
     null as video_play_actions, 
-    ga.conversions,
+    null as conversions,
     null as full_watches,
     null as thruplay_actions,
     ga.total_users,
@@ -157,7 +156,7 @@ with all_data_bigben as (
 
   select 
     p.post_date,
-    upper (p.ad_group_name) as ad_name,
+    p.ad_group_name,
     p.cost, 
     p.impressions_paid,
     p.clicks_paid,
@@ -193,3 +192,5 @@ with all_data_bigben as (
 )
   select * from all_data_bigben
 where post_date >= date_sub(current_date(), interval 8 day);
+
+
