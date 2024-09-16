@@ -48,13 +48,64 @@ function importDataFromDriveToBigQueryBigBen() {
         return row;
       });
 
+      // Adicionar uma nova coluna "pedido" com valor "1"
+      data = data.map(function(row, rowIndex) {
+        if (rowIndex === 0) { 
+          row.push("itens_vendidos"); // Adiciona o cabeçalho da nova coluna
+        } else {
+          row.push(1); // Adiciona o valor "1" para cada linha
+        }
+        return row;
+      });
+
+      // Adicionar nova coluna "tipo_item"
+data = data.map(function(row, rowIndex) {
+  if (rowIndex === 0) { 
+    row.push("tipo_item"); // Adiciona o cabeçalho da nova coluna
+  } else {
+    var skuName = row[25]; // Acessa o nome do SKU
+    if (skuName && skuName.indexOf("Relógio") !== -1) {
+      row.push("Relógio");
+    } else if (skuName && skuName.indexOf("Alfinete") !== -1) {
+      row.push("Alfinete");
+    } else if (skuName && skuName.indexOf("Aliança") !== -1) {
+      row.push("Aliança");
+    } else if (skuName && skuName.indexOf("Anel") !== -1) {
+      row.push("Anel");
+    } else if (skuName && skuName.indexOf("Brinco") !== -1) {
+      row.push("Brinco");
+    } else if (skuName && skuName.indexOf("Colar") !== -1) {
+      row.push("Colar");
+    } else if (skuName && skuName.indexOf("Corrente") !== -1) {
+      row.push("Corrente");
+    } else if (skuName && skuName.indexOf("Gargantilha") !== -1) {
+      row.push("Gargantilha");
+    } else if (skuName && skuName.indexOf("Meia Aliança") !== -1) {
+      row.push("Meia Aliança");
+    } else if (skuName && skuName.indexOf("Piercing") !== -1) {
+      row.push("Piercing");
+    } else if (skuName && skuName.indexOf("Pingente") !== -1) {
+      row.push("Pingente");
+    } else if (skuName && skuName.indexOf("Pulseira") !== -1) {
+      row.push("Pulseira");
+    } else if (skuName && skuName.indexOf("Tornozeleira") !== -1) {
+      row.push("Tornozeleira");
+    } else {
+      // Caso nenhuma categoria seja encontrada, pega a primeira palavra
+      var words = skuName.split(" "); // Divide a string por espaços
+      var firstFirstWords = words.slice(0, 1).join(" "); // Pega até a primeira palavra 
+      row.push(firstFirstWords || "Jóias"); // Se estiver vazio, mantém "Jóias"
+    }
+  }
+  return row;
+});
       var headers = data[0]; // Assumindo que a primeira linha é o cabeçalho
       data.shift(); // Remover a linha de cabeçalho dos dados
 
       // Corrigir os nomes dos campos que causam erro
       var fieldMapping = {
         "Origin":"origin",
-        "Order":"order",
+        "Order":"order_id",
         "Sequence":"sequence",
         "Creation Date":"creation_date",
         "UF":"uf",
@@ -73,15 +124,15 @@ function importDataFromDriveToBigQueryBigBen() {
         "Coupon":"coupon",
         "Payment System Name":"payment_system_name",
         "Installments":"installments",
-        "Payment Value":"payment value",
+        "Payment Value":"payment_value",
         "Quantity_SKU":"quantity_sku",
         "ID_SKU":"id_sku",
         "Category Ids Sku":"category_ids_sku",
         "Reference Code":"reference_code",
         "SKU Name":"sku_name",
         "SKU Value":"sku_value",
-        "SKU Selling Price":"sku_selling price",
-        "SKU Total Price":"sku_total price",
+        "SKU Selling Price":"sku_selling_price",
+        "SKU Total Price":"sku_total_price",
         "SKU Path":"sku_path",
         "Item Attachments":"item_attachments",
         "List Id":"list_id",
@@ -156,7 +207,7 @@ function importDataFromDriveToBigQueryBigBen() {
 
       var url = 'https://www.googleapis.com/bigquery/v2/projects/' + projectId + '/datasets/' + datasetId + '/tables/' + tableId + '/insertAll';
 
-      var options = {
+            var options = {
         method: 'POST',
         contentType: 'application/json',
         payload: JSON.stringify(request),
@@ -174,15 +225,16 @@ function importDataFromDriveToBigQueryBigBen() {
       }
 
       // Mover o arquivo para a subpasta "Processed" para indicar que já foi processado
+
       var processedFolder = DriveApp.getFolderById(folderId).getFoldersByName('Processed').next();
       file.moveTo(processedFolder);
       Logger.log('Arquivo movido para a subpasta "Processed": ' + file.getName() + ' às ' + new Date());
     } else {
       Logger.log('Arquivo não é uma planilha do Google Sheets: ' + file.getName() + ' às ' + new Date());
     }
-  }
+    }
 
-  var endTime = new Date();
-  Logger.log('Fim da execução do script: ' + endTime);
-  Logger.log('Duração total da execução: ' + (endTime - startTime) + ' ms');
-}
+      var endTime = new Date();
+      Logger.log('Fim da execução do script: ' + endTime);
+      Logger.log('Duração total da execução: ' + (endTime - startTime) + ' ms');
+    }
